@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Memprediksi Angka 3 dan 5</title>
+<style>
+  *{box-sizing:border-box}
+  :root{--bg:#f4f7fb;--ink:#172033;--muted:#65718a;--blue:#3459e6;--cyan:#15b8c8;--line:#e3e8f2;--white:#fff}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:Arial,Helvetica,sans-serif}
+  header{background:linear-gradient(120deg,#172554,#2849bc);color:white;padding:30px 18px 48px}
+  .head{max-width:960px;margin:auto}
+  .label{font-size:12px;letter-spacing:2px;font-weight:bold;color:#9beaf1;text-transform:uppercase}
+  h1{font-size:clamp(27px,5vw,42px);margin:12px 0 10px;line-height:1.1}
+  header p{max-width:620px;color:#dbe6ff;line-height:1.6;margin:0}
+  main{max-width:960px;margin:-25px auto 0;padding:0 16px 35px}
+  .grid{display:grid;grid-template-columns:1.1fr .9fr;gap:18px}
+  .card{background:var(--white);border:1px solid var(--line);border-radius:18px;padding:20px;box-shadow:0 12px 32px #192b5510}
+  .card h2{font-size:18px;margin:0 0 6px}
+  .desc{font-size:13px;line-height:1.55;color:var(--muted);margin:0 0 16px}
+  .camera{min-height:280px;background:#101827;border-radius:14px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+  #webcam-container canvas{display:block;max-width:100%;height:auto!important;border-radius:12px}
+  .placeholder{padding:25px;text-align:center;color:#d5deef}
+  .camera-symbol{font-size:42px;margin-bottom:12px}
+  .placeholder strong{display:block;margin-bottom:8px}
+  .placeholder span{font-size:13px;line-height:1.5;color:#aab8d0}
+  .actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:14px}
+  button{border:0;border-radius:10px;padding:12px 16px;font-weight:bold;cursor:pointer}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  .primary{background:var(--blue);color:white;flex:1}
+  .secondary{background:#edf1fa;color:#263653}
+  #notice{font-size:12px;color:var(--muted);line-height:1.5;margin-top:12px;min-height:18px}
+  .prediction{border:1px solid var(--line);background:#f8faff;border-radius:14px;padding:18px;margin:14px 0}
+  .caption{font-size:12px;color:var(--muted);margin-bottom:8px}
+  #top-class{font-size:46px;font-weight:800;color:var(--blue);line-height:1.1}
+  #top-confidence{font-size:13px;font-weight:bold;color:#148c80;margin-top:8px}
+  .bar{height:8px;background:#e8edf7;border-radius:20px;overflow:hidden;margin-top:13px}
+  #top-meter{height:100%;width:0;background:linear-gradient(90deg,var(--blue),var(--cyan));transition:width .2s}
+  .section-title{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:bold;margin:20px 0 12px}
+  #label-container{display:grid;gap:13px}
+  .pred-row{display:grid;grid-template-columns:1fr auto;gap:8px;font-size:13px;font-weight:bold}
+  .pct{color:var(--muted);font-weight:normal}
+  .track{grid-column:1/-1;height:7px;border-radius:10px;background:#e8edf7;overflow:hidden}
+  .fill{height:100%;width:0;background:var(--cyan);transition:width .2s}
+  .hint{margin-top:18px;padding:13px;border-radius:12px;background:#eef8fb;color:#365a68;font-size:12px;line-height:1.6}
+  footer{text-align:center;color:#7a8498;font-size:12px;padding:0 15px 25px}
+  code{background:#eef1f7;padding:2px 4px;border-radius:4px}
+  @media(max-width:720px){.grid{grid-template-columns:1fr}header{padding-bottom:42px}.camera{min-height:230px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="head">
+    <div class="label">Proyek klasifikasi gambar sederhana</div>
+    <h1>AI Memprediksi Angka 3 dan 5</h1>
+    <p>Arahkan kamera ke tulisan angka 3 atau 5. Model Teachable Machine akan memprediksi angka yang terlihat dan menampilkan persentase keyakinannya.</p>
+  </div>
+</header>
+<main>
+  <div class="grid">
+    <section class="card">
+      <h2>Kamera</h2>
+      <p class="desc">Tekan tombol mulai, lalu izinkan akses kamera pada browser.</p>
+      <div class="camera">
+        <div id="placeholder" class="placeholder">
+          <div class="camera-symbol">📷</div>
+          <strong>Kamera belum aktif</strong>
+          <span>Hasil prediksi akan tampil setelah kamera dinyalakan.</span>
+        </div>
+        <div id="webcam-container"></div>
+      </div>
+      <div class="actions">
+        <button id="start" class="primary" type="button">Mulai kamera</button>
+        <button id="stop" class="secondary" type="button" disabled>Hentikan</button>
+      </div>
+      <div id="notice" role="status">Model dimuat dari folder <code>my_model/</code>.</div>
+    </section>
+    <section class="card">
+      <h2>Hasil prediksi</h2>
+      <p class="desc">Angka yang diprediksi model dengan nilai keyakinan tertinggi.</p>
+      <div class="prediction">
+        <div class="caption">Angka terdeteksi</div>
+        <div id="top-class">—</div>
+        <div id="top-confidence">Menunggu kamera</div>
+        <div class="bar"><div id="top-meter"></div></div>
+      </div>
+      <div class="section-title">Probabilitas setiap kelas</div>
+      <div id="label-container"><p class="desc">Hasil kelas 3 dan 5 muncul di sini setelah model aktif.</p></div>
+      <div class="hint"><b>Catatan:</b> Prediksi bergantung pada model yang dilatih. Pastikan model Teachable Machine memiliki kelas angka <b>3</b> dan <b>5</b>.</div>
+    </section>
+  </div>
+</main>
+<footer>AI Memprediksi Angka 3 dan 5 · TensorFlow.js + Teachable Machine</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+<script>
+  const URL = "./my_model/";
+  let model = null, webcam = null, maxPredictions = 0, running = false, rafId = null;
+  const startButton = document.getElementById("start");
+  const stopButton = document.getElementById("stop");
+  const notice = document.getElementById("notice");
+  const placeholder = document.getElementById("placeholder");
+  const labelContainer = document.getElementById("label-container");
+
+  async function init() {
+    if (running) return;
+    startButton.disabled = true;
+    notice.textContent = "Memuat model AI...";
+    try {
+      if (!model) {
+        model = await tmImage.load(URL + "model.json", URL + "metadata.json");
+        maxPredictions = model.getTotalClasses();
+        makeRows();
+      }
+      notice.textContent = "Meminta izin kamera...";
+      webcam = new tmImage.Webcam(280, 280, true);
+      await webcam.setup();
+      await webcam.play();
+      document.getElementById("webcam-container").replaceChildren(webcam.canvas);
+      placeholder.style.display = "none";
+      running = true;
+      stopButton.disabled = false;
+      startButton.textContent = "Kamera aktif";
+      notice.textContent = "Kamera aktif. Tunjukkan angka 3 atau 5.";
+      rafId = requestAnimationFrame(loop);
+    } catch (error) {
+      console.error(error);
+      if (error && error.name === "NotAllowedError") {
+        notice.textContent = "Izin kamera ditolak. Izinkan kamera melalui pengaturan situs di browser.";
+      } else {
+        notice.textContent = "Model/kamera gagal dibuka. Periksa file di folder my_model dan jalankan dengan Live Server atau HTTPS.";
+      }
+      startButton.disabled = false;
+      if (webcam) { try { webcam.stop(); } catch (e) {} webcam = null; }
+    }
+  }
+
+  function makeRows() {
+    labelContainer.innerHTML = "";
+    for (let i = 0; i < maxPredictions; i++) {
+      const row = document.createElement("div");
+      row.className = "pred-row";
+      row.innerHTML = '<span class="name"></span><span class="pct">0%</span><div class="track"><div class="fill"></div></div>';
+      labelContainer.appendChild(row);
+    }
+  }
+
+  async function loop() {
+    if (!running || !webcam) return;
+    webcam.update();
+    await predict();
+    if (running) rafId = requestAnimationFrame(loop);
+  }
+
+  async function predict() {
+    const results = await model.predict(webcam.canvas);
+    results.sort((a, b) => b.probability - a.probability);
+    const best = results[0];
+    const percent = Math.round(best.probability * 100);
+    document.getElementById("top-class").textContent = best.className;
+    document.getElementById("top-confidence").textContent = percent + "% tingkat keyakinan";
+    document.getElementById("top-meter").style.width = percent + "%";
+    results.forEach((item, index) => {
+      const row = labelContainer.children[index];
+      if (!row) return;
+      const p = Math.round(item.probability * 100);
+      row.querySelector(".name").textContent = item.className;
+      row.querySelector(".pct").textContent = p + "%";
+      row.querySelector(".fill").style.width = p + "%";
+    });
+  }
+
+  function stopCamera() {
+    running = false;
+    if (rafId !== null) cancelAnimationFrame(rafId);
+    if (webcam) {
+      try { webcam.stop(); } catch (e) {}
+      if (webcam.canvas && webcam.canvas.parentNode) webcam.canvas.parentNode.removeChild(webcam.canvas);
+      webcam = null;
+    }
+    placeholder.style.display = "block";
+    stopButton.disabled = true;
+    startButton.disabled = false;
+    startButton.textContent = "Mulai kamera";
+    document.getElementById("top-class").textContent = "—";
+    document.getElementById("top-confidence").textContent = "Kamera dihentikan";
+    document.getElementById("top-meter").style.width = "0";
+    labelContainer.innerHTML = '<p class="desc">Nyalakan kamera kembali untuk melanjutkan prediksi.</p>';
+    notice.textContent = "Kamera telah dihentikan.";
+  }
+  startButton.addEventListener("click", init);
+  stopButton.addEventListener("click", stopCamera);
+  window.addEventListener("beforeunload", () => { running = false; if (webcam) { try { webcam.stop(); } catch (e) {} } });
+</script>
+</body>
+</html>
